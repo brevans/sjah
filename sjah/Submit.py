@@ -152,6 +152,7 @@ def main():
     parser = argparse.ArgumentParser(conflict_handler="resolve")
     add_args(parser)
     args = parser.parse_args()
+    args.func(args)
 
 
 if __name__ == "__main__":
