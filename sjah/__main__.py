@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import logging
 import argparse
-from . import Submit
-from . import Status
-from . import Batch
+import logging
+
+from . import Batch, Status, Submit
 
 logging.basicConfig(level=logging.WARN)
 prog = "sjah"

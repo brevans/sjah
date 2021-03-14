@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import argparse
 import logging
+import os
 import re
 import subprocess
-import argparse
-import os
 
 
 def mkdir(path):
