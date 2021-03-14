@@ -35,16 +35,16 @@ setup(
         "Programming Language :: Python :: 3 :: Only",
     ],
     keywords="slurm, research, cluster, computing, hpc, job, arrays, cluster computing",
-    packages="sjah",
+    packages=["sjah"],
     python_requires=">=3.6, <4",
     # install_requires=[''],
     extras_require={
-        "dev": dev_requirements,
+        "develop": dev_requirements,
         #     'test': ['coverage'],
     },
     entry_points={  # Optional
         "console_scripts": [
-            "sjah=sjah:main",
+            "sjah=sjah.__main__:main",
         ],
     },
     project_urls={
