@@ -21,5 +21,7 @@ TODO
 
 TODO
 ```
+# create and activate a venv or conda env with python>=3.6
 python3 -m pip install black flake8 flake8-import-order flake8-black pre-commit
+python3 setup.py develop
 ```
