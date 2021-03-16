@@ -91,3 +91,7 @@ ENV/
 # vscode
 .vscode/settings.json
 .vscode/launch.json
+
+# job files
+sjah-*.sh
+*.txt

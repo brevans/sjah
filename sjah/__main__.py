@@ -13,7 +13,7 @@ class SjahTopLevelCommand(SjahCommand.SjahCommand):
         self.description = "Slurm Job Array Helper v {}".format(self.version)
         # these need to match a class provided in this dir
         # e.g. submit -> SubmitCommand.SubmitCommand
-        self.sub_commands = ["submit", "batch", "status"]
+        self.sub_commands = ["batch", "status", "run"]
         self.logger = logging.getLogger(self.prog)
 
     def choice_alias(self, choice):
