@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import argparse
 import logging
+from functools import partial
 from importlib import import_module
 
 import sjah.SjahCommand as SjahCommand
@@ -11,20 +12,9 @@ class SjahTopLevelCommand(SjahCommand.SjahCommand):
     def __init__(self):
         SjahCommand.SjahCommand.__init__(self)
         self.description = "Slurm Job Array Helper v {}".format(self.version)
-        # these need to match a class provided in this dir
-        # e.g. submit -> SubmitCommand.SubmitCommand
+        # these need to match a class provided in this directory
+        # e.g. batch -> BatchCommand.BatchCommand
         self.sub_commands = ["batch", "status", "run"]
-        self.logger = logging.getLogger(self.prog)
-
-    def choice_alias(self, choice):
-        """
-        Function to allow for unique left-anchored substrings of the commands
-        Returns the right command if it's unique, otherwise passes the choice through
-        """
-        options = [c for c in self.sub_commands if c.startswith(choice)]
-        if len(options) == 1:
-            return options[0]
-        return choice
 
     def run_subcommand(self):
         subcommand_class_name = "{}Command".format(self.args.command.capitalize())
@@ -37,15 +27,16 @@ class SjahTopLevelCommand(SjahCommand.SjahCommand):
     def add_args(self):
         # top-level args
         self.parser.add_argument(
-            "--debug",
-            action="store_true",
+            "--log-level",
             help=argparse.SUPPRESS,
+            choices=self.log_levels,
+            type=partial(self.choice_alias, self.log_levels),
         )
         self.parser.add_argument(
             "command",
             help="Sub-command to run.",
             choices=self.sub_commands,
-            type=self.choice_alias,
+            type=partial(self.choice_alias, self.sub_commands),
         )
         self.parser.set_defaults(func=self.run_subcommand)
 
@@ -59,8 +50,9 @@ class SjahTopLevelCommand(SjahCommand.SjahCommand):
         )
         self.add_args()
         self.args, self.rest_of_args = self.parser.parse_known_args()
-        if self.args.debug:
-            self.logger.setLevel(logging.DEBUG)
+        if self.args.log_level is not None:
+            self.logger.setLevel(getattr(logging, self.args.log_level))
+            self.logger.debug("Setting logging to %s", self.args.log_level)
         self.logger.debug("Got args %s, %s", self.args, self.rest_of_args)
         self.args.func()
 
