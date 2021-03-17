@@ -10,7 +10,7 @@
 # create a venv or conda env with python>=3.6
 python3 -m pip install sjah
 rm -f jobfile.txt && for i in seq 5; do echo "sleep $((1 + $RANDOM % 10))" >> jobfile.txt; done;
-sjah sub --jobfile jobfile.txt
+sjah batch --submit jobfile.txt
 ```
 
 ## Usage
