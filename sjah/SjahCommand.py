@@ -10,6 +10,7 @@ import sys
 import grp
 import pwd
 from datetime import datetime
+from itertools import groupby
 
 from sjah.version import __version__
 
@@ -88,19 +89,32 @@ class SjahCommand:
         else:
             self.logger.info("Directory %s already exists", path)
 
-    def _collapse_ranges(self, job_idxs):
-        # takes a list of numbers, returns tuples of numbers that specify representative ranges
-        # inclusive
-        for i, t in itertools.groupby(enumerate(job_idxs), lambda tx: tx[1] - tx[0]):
-            t = list(t)
-            yield t[0][1], t[-1][1]
+    def collapse_ranges(self, num_list):
+        self.logger.debug("Collapsing range %s", num_list)
+        for _, values in groupby(enumerate(num_list), lambda pair: pair[1] - pair[0]):
+            values = list(values)
+            if values[0][1] == values[-1][1]:
+                yield "{}".format(values[0][1])
+            else:
+                yield "{}-{}".format(values[0][1], values[-1][1])
 
-    # format job ranges
-    def format_range(self, job_idxs):
-        ranges = list(self._collapse_ranges(job_idxs))
-        return ",".join(
-            ["{}-{}".format(x[0], x[1]) if x[0] != x[1] else str(x[0]) for x in ranges]
-        )
+    def expand_ranges(self, idx_range):
+        self.logger.debug("Expanding range string %s", idx_range)
+        if not idx_range.startswith("[") and idx_range.endswith("]"):
+            self.logger.error(
+                'Expecting array range string to start with "[" and end with "]", but got %s',
+                idx_range,
+            )
+            sys.exit(1)
+        start = idx_range.find("[") + 1
+        end = idx_range.find("]") if idx_range.find("%") == -1 else idx_range.find("%")
+        for sub_idx in idx_range[start:end].split(","):
+            if "-" not in sub_idx:
+                yield int(sub_idx)
+            else:
+                low, high = sub_idx.split("-", 1)
+                for i in range(int(low), int(high) + 1):
+                    yield int(i)
 
     def add_args(self):
         # implement in Command

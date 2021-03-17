@@ -172,7 +172,7 @@ class BatchCommand(SjahCommand.SjahCommand):
             self.args.job_file[0].name,
             i + 1,
         )
-        self.array_range = self.format_range(self.job_id_list)
+        self.array_range_str = ",".join(list(self.format_range(self.job_id_list)))
 
     def set_sbatch_args_out(self):
         self.sbatch_args_out = []
@@ -201,7 +201,7 @@ class BatchCommand(SjahCommand.SjahCommand):
         if self.args.array is not None:
             arrayspec = self.args.array
         else:
-            arrayspec = self.array_range
+            arrayspec = self.array_range_str
             if self.args.step_array_jobs is not None:
                 arrayspec = "{}:{}".format(arrayspec, self.args.step_array_jobs[0])
             if self.args.max_array_jobs is not None:
