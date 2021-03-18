@@ -17,7 +17,7 @@ class BatchCommand(SjahCommand.SjahCommand):
         self.job_id_list = []
         self.num_jobs = 0
         self.run_args = []
-        self.help = "Create a batch submission script for a job array based on a text file of jobs, one per line."
+        self.description = "Create a batch submission script for a job array based on a text file of jobs, one per line."
         # regex to match short & long arguments from "sbatch --help", groups to optionally match whether or not they accept arguments
         self.sbatch_args_regex = r"^\W{1,10}(-[a-zA-Z])?,?\W{1,3}(--[a-zA-Z\-]+)(=\[?[a-zA-Z\-_\[\]\<\>|.:!@{}]*\]?)?(\[=[a-zA-Z ]+\])?"
 
@@ -72,7 +72,6 @@ class BatchCommand(SjahCommand.SjahCommand):
             "-h",
             "--help",
             action="help",
-            default=argparse.SUPPRESS,
             help="Show this help message and exit.",
         )
         self.sjah_batch_opts.add("--help")
@@ -105,7 +104,7 @@ class BatchCommand(SjahCommand.SjahCommand):
             metavar="number",
             type=int,
             nargs=1,
-            help="Maximum number of simultaneously running jobs from the job array (the %number to sbatch --array).",
+            help="Maximum number of simultaneously running jobs from the job array (the %%number to sbatch --array).",
         )
         self.sjah_batch_opts.add("--max-array-jobs")
 
