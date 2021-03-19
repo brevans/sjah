@@ -21,6 +21,7 @@ setup(
     url="https://github.com/ycrc/sjah",
     author="Yale Center for Research Computing",
     author_email="hpc@yale.edu",
+    license_files=("LICENSE",),
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Science/Research",
