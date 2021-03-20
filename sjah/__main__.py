@@ -26,11 +26,12 @@ class SjahTopLevelCommand(SjahCommand.SjahCommand):
 
     def add_args(self):
         # top-level args
+        log_levels = self._get_log_levels()
         self.parser.add_argument(
             "--log-level",
             help=argparse.SUPPRESS,
-            choices=self.log_levels,
-            type=partial(self.choice_alias, self.log_levels),
+            choices=log_levels,
+            type=partial(self.choice_alias, log_levels),
         )
         self.parser.add_argument(
             "command",

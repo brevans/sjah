@@ -62,7 +62,7 @@ class StatusCommand(SjahCommand.SjahCommand):
             ",".join(self.sacct_input_cols), self.args.jobid
         )
         self.logger.debug("Running %s", sacct_cmd)
-        for i, line in enumerate(self.check_output_lines(sacct_cmd)):
+        for i, line in enumerate(self.yield_output_lines(sacct_cmd)):
             split_line = line.split("|")
             if len(split_line) == len(self.sacct_input_cols):
                 name, jobid_and_idx, state = split_line

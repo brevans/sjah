@@ -23,7 +23,7 @@ class BatchCommand(SjahCommand.SjahCommand):
 
     def get_sbatch_help_args(self):
         cmd = "sbatch --help"
-        for line in self.check_output_lines(cmd):
+        for line in self.yield_output_lines(cmd):
             match = re.match(self.sbatch_args_regex, line)
             if match is not None:
                 short_arg, long_arg, opt1, opt2 = match.groups()
@@ -171,7 +171,7 @@ class BatchCommand(SjahCommand.SjahCommand):
             self.args.job_file[0].name,
             i + 1,
         )
-        self.array_range_str = ",".join(list(self.format_range(self.job_id_list)))
+        self.array_range_str = ",".join(self.collapse_ranges(self.job_id_list))
 
     def set_sbatch_args_out(self):
         self.sbatch_args_out = []

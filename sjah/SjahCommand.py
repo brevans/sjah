@@ -15,6 +15,42 @@ from sjah.version import __version__
 
 
 class ContextFilter(logging.Filter):
+    """
+    Logging filter to add host, user, and group context to logging records
+
+
+    Attributes
+    ----------
+    record.username : string
+        User that started this process.
+    record.uid : string
+        User ID that started this process.
+    record.groupname : string
+        Effective group name that started this process.
+    record.gid : string
+        Effective group ID that started this process.
+    record.hostname : string
+
+
+    Methods
+    -------
+    filter(record)
+        Filter function logging runs to set attributes above, making them available in logging messages.
+
+    Examples
+    -------
+    >>> import logging
+    >>> logging.basicConfig(
+    ...     level=logging.WARN,
+    ...     format="%(asctime)s %(levelname)s %(hostname)s %(username)s(%(uid)s) %(groupname)s(%(gid)s): %(message)s",
+    ... )
+    >>> logger = logging.getLogger()
+    >>> log_filter = ContextFilter()
+    >>> logger.addFilter(self.log_filter)
+    >>> logger.warn("The end is nigh!")
+    2038-01-19 03:14:00,000 WARNING example.host.com expert(1001) support(1001): The end is nigh!
+    """
+
     def filter(self, record):
         userinfo = pwd.getpwuid(os.getuid())
         groupinfo = grp.getgrgid(os.getgid())
@@ -27,7 +63,65 @@ class ContextFilter(logging.Filter):
 
 
 class SjahCommand:
-    def check_output_lines(self, command_str):
+    """
+    Base command class for Slum Array Job Helper (sjah). Contains a few convenience functions for sub-classes and some argparse setup.
+
+
+    Attributes
+    ----------
+    prog : str
+        Base name from sys.argv[0]. Should usually be "sjah".
+    prog_abs : str
+        Absolute path to sys.argv[0].
+    command_name : str
+        Name this command should be called as from cli.
+    today : str
+        Todays date as YYYY-MM-DD
+    logger : logging.logger
+        Logger object to use for logging.
+    version : str
+        The __version__ from version.py
+    description : str
+        Description for this command
+    slurm_version : str
+        Slurm version, from scontrol show conf
+    max_array_size : int
+        Max array size/index, from scontrol show conf
+
+
+    Methods
+    -------
+    yield_output_lines(command_str)
+        Run command_str with subprocess.run, yielding decoded lines from both stdout and stderr.
+    choice_alias(choices, choice)
+        Return left-anchored unique match of choice in choices, otherwise return choice.
+    mkdir(path)
+        Create path if it doesn't exist. Equivalent to mkdir -p path.
+    collapse_ranges(num_list)
+        Convert and return the pre-sorted numbers in num_list to comma-separated ranges. e.g. [1,2,3,5] -> "1-3,5"
+    expand_ranges(idx_range)
+        Convert a bracketed range string to a list of integers. e.g. "[1-3,5]" -> [1,2,3,5]
+    add_args()
+        Implement in sub-classes. Add arguments to and setup self.parser. !! Must set default parser behavior with self.parser.set_defaults(func=some_func)
+    run_parser()
+        Creates a self.argparse.parser, runs add_args, parses args, then runs self.args.func(). Run this method in main.
+    """
+
+    def yield_output_lines(self, command_str):
+        """
+        Run command_str as a subprocess, yield the line-split results as decoded strings.
+
+        Parameters
+        ----------
+        command_str : str
+            String to run with subprocess.run
+
+        Yields
+        ------
+        line : str
+            Lines from STDOUT and STDERR that running command_str generates.
+
+        """
         self.logger.info('Running cmd as subprocess: "%s"', command_str)
         completed = subprocess.run(
             command_str,
@@ -37,24 +131,38 @@ class SjahCommand:
             shell=True,
             universal_newlines=True,
         )
+        self.logger.info(
+            'Subprocess "%s" resulted in returncode %s',
+            command_str,
+            completed.returncode,
+        )
         for line in completed.stdout.split("\n"):
             yield line
 
-    def set_slurm_info(self):
-        for line in self.check_output_lines("scontrol show conf"):
-            if line.startswith("SLURM_VERSION"):
-                self.slurm_version = line.split()[-1]
-                self.logger.info("Found Slurm Version %s", self.slurm_version)
-            elif line.startswith("MaxArraySize"):
-                self.max_array_size = int(line.split()[-1])
-                self.logger.info("MaxArraySize is %s", self.max_array_size)
+    def _set_slurm_info(self):
+        cmd = "scontrol show conf"
+        try:
+            for line in self.yield_output_lines(cmd):
+                if line.startswith("SLURM_VERSION"):
+                    self.slurm_version = line.split()[-1]
+                    self.logger.info("Found Slurm Version %s", self.slurm_version)
+                elif line.startswith("MaxArraySize"):
+                    self.max_array_size = int(line.split()[-1])
+                    self.logger.info("MaxArraySize is %s", self.max_array_size)
+        except FileNotFoundError as e:
+            self.logger.error(
+                "Doesn't look like Slurm is installed properly. Couldn't run %s : %s",
+                cmd,
+                e,
+            )
+            print("Couldn't find slurm on this system, exiting.", file=sys.stderr)
+            sys.exit(1)
 
     def __init__(self):
         self.prog = os.path.basename(sys.argv[0])
         self.prog_abs = os.path.abspath(sys.argv[0])
         self.command_name = "base"
         self.today = datetime.now().strftime("%Y-%m-%d")
-        self.log_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
         logging.basicConfig(
             level=logging.WARN,
             format="%(asctime)s %(levelname)s %(hostname)s %(username)s(%(uid)s) %(groupname)s(%(gid)s) {0}.%(module)s.%(funcName)s: %(message)s".format(
@@ -63,12 +171,15 @@ class SjahCommand:
             datefmt="%Y-%m-%d %H:%M:%S",
         )
         self.logger = logging.getLogger(__name__)
-        self.log_filter = ContextFilter()
-        self.logger.addFilter(self.log_filter)
-        self.hostname = platform.node()
+        self._log_filter = ContextFilter()
+        self.logger.addFilter(self._log_filter)
         self.version = __version__
         self.description = "Help description for this command."
-        self.set_slurm_info()
+        self._set_slurm_info()
+
+    def _get_log_levels(self):
+
+        return list(logging._nameToLevel.keys())
 
     def choice_alias(self, choices, choice):
         """
@@ -119,9 +230,9 @@ class SjahCommand:
                         yield int(i)
 
     def add_args(self):
-        # implement in Command
-        # self.parser.set_defaults(func=default_function)
-        pass
+        # implement in sub-classes
+        # self.parser.set_defaults(func=some_func)
+        raise NotImplementedError
 
     def run_parser(self, args_list):
         self.parser = argparse.ArgumentParser(
