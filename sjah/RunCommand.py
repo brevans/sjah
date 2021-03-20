@@ -95,7 +95,6 @@ class RunCommand(SjahCommand.SjahCommand):
             "-h",
             "--help",
             action="help",
-            default=argparse.SUPPRESS,
             help="Show this help message and exit.",
         )
         optional_sjah_run.add_argument(

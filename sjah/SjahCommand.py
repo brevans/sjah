@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import argparse
-import itertools
 import logging
 import os
 import platform
@@ -100,21 +99,24 @@ class SjahCommand:
 
     def expand_ranges(self, idx_range):
         self.logger.debug("Expanding range string %s", idx_range)
-        if not idx_range.startswith("[") and idx_range.endswith("]"):
-            self.logger.error(
-                'Expecting array range string to start with "[" and end with "]", but got %s',
-                idx_range,
+        if not (idx_range.startswith("[") and idx_range.endswith("]")):
+            yield int(idx_range)
+        elif idx_range.startswith("[") and not idx_range.endswith("]"):
+            self.logger.error("%s doesn't look like a valid array index", idx_range)
+        else:
+            start = idx_range.find("[") + 1
+            end = (
+                idx_range.find("]")
+                if idx_range.find("%") == -1
+                else idx_range.find("%")
             )
-            sys.exit(1)
-        start = idx_range.find("[") + 1
-        end = idx_range.find("]") if idx_range.find("%") == -1 else idx_range.find("%")
-        for sub_idx in idx_range[start:end].split(","):
-            if "-" not in sub_idx:
-                yield int(sub_idx)
-            else:
-                low, high = sub_idx.split("-", 1)
-                for i in range(int(low), int(high) + 1):
-                    yield int(i)
+            for sub_idx in idx_range[start:end].split(","):
+                if "-" not in sub_idx:
+                    yield int(sub_idx)
+                else:
+                    low, high = sub_idx.split("-", 1)
+                    for i in range(int(low), int(high) + 1):
+                        yield int(i)
 
     def add_args(self):
         # implement in Command
@@ -126,7 +128,10 @@ class SjahCommand:
             conflict_handler="resolve",
             description=self.description,
             prog="{} {}".format(self.prog, self.command_name),
+            # leave it up to subclasses to add help message
+            add_help=False,
         )
         self.add_args()
         self.args = self.parser.parse_args(args_list)
+        self.logger.debug("got args: %s", self.args)
         self.args.func()
